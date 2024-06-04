@@ -9,7 +9,7 @@ The first argument is the beginning of the count (inclusive), and the second arg
 
 prompt by Dimitri Mitropoulos of MiTS
 
-> 从一个元组(注意是元组不是数组)中找到指定字符的数组索引,简单理解为`indexOf`
+> 创建一个 `UnionType`，用来计算剩余天数
 
 ## Question
 
@@ -18,20 +18,21 @@ prompt by Dimitri Mitropoulos of MiTS
     
 import { Expect, Equal } from 'type-testing';
 
-type TwelveDaysOfChristmas = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
-type test_0_actual = DayCounter<1, 12>;
+type test_0_actual = DecipherNaughtyList<'timmy/jimmy'>;
 //   ^?
-type test_0_expected = TwelveDaysOfChristmas;
+type test_0_expected = 'jimmy' | 'timmy';
 type test_0 = Expect<Equal<test_0_expected, test_0_actual>>;
 
-type DaysUntilChristmas =
-  | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10
-  | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20
-  | 21 | 22 | 23 | 24 | 25;
-type test_1_actual = DayCounter<1, 25>;
+type test_1_actual = DecipherNaughtyList<'elliot'>;
 //   ^?
-type test_1_expected = DaysUntilChristmas;
+type test_1_expected = 'elliot';
 type test_1 = Expect<Equal<test_1_expected, test_1_actual>>;
+
+type test_2_actual = DecipherNaughtyList<'melkey/prime/theo/trash'>;
+//   ^?
+type test_2_expected = 'melkey' | 'prime' | 'theo' | 'trash';
+type test_2 = Expect<Equal<test_2_expected, test_2_actual>>;
+
 
 ```
 
