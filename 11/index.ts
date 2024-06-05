@@ -1,24 +1,70 @@
-type StreetSuffixTester<A extends string, S extends string> = A extends `${infer _}${S}`?true:false;
-
-
+type SantaListProtector<T> = T extends (...args: any) => unknown
+  ? T
+  : T extends object
+  ? { readonly [P in keyof T]: SantaListProtector<T[P]> }
+  : T;
 import { Expect, Equal } from 'type-testing';
 
-type test_0_actual = StreetSuffixTester<'Candy Cane Way', 'Way'>;
-//   ^?
-type test_0_expected = true;
+type test_0_actual = SantaListProtector<{
+  //   ^?
+  hacksore: () => 'naughty';
+  trash: string;
+  elliot: {
+    penny: boolean;
+    candace: {
+      address: {
+        street: {
+          name: 'candy cane way';
+          num: number;
+        };
+        k: 'hello';
+      };
+      children: [
+        'harry',
+        {
+          saying: ['hey'];
+        },
+      ];
+    };
+  };
+}>;
+type test_0_expected = {
+  readonly hacksore: () => 'naughty';
+  readonly trash: string;
+  readonly elliot: {
+    readonly penny: boolean;
+    readonly candace: {
+      readonly address: {
+        readonly street: {
+          readonly name: 'candy cane way';
+          readonly num: number;
+        };
+        readonly k: 'hello';
+      };
+      readonly children: readonly [
+        'harry',
+        {
+          readonly saying: readonly ['hey'];
+        },
+      ];
+    };
+  };
+};
 type test_0 = Expect<Equal<test_0_expected, test_0_actual>>;
 
-type test_1_actual = StreetSuffixTester<'Chocalate Drive', 'Drive'>;
-//   ^?
-type test_1_expected = true;
+type test_1_actual = SantaListProtector<{
+  //   ^?
+  theo: () => 'naughty';
+  prime: string;
+  netflix: {
+    isChill: boolean;
+  };
+}>;
+type test_1_expected = {
+  readonly theo: () => 'naughty';
+  readonly prime: string;
+  readonly netflix: {
+    readonly isChill: boolean;
+  };
+};
 type test_1 = Expect<Equal<test_1_expected, test_1_actual>>;
-
-type test_2_actual = StreetSuffixTester<'Sugar Lane', 'Drive'>;
-//   ^?
-type test_2_expected = false;
-type test_2 = Expect<Equal<test_2_expected, test_2_actual>>;
-
-type test_3_actual = StreetSuffixTester<'Fifth Dimensional Nebulo 9', 'invalid'>;
-//   ^?
-type test_3_expected = false;
-type test_3 = Expect<Equal<test_3_expected, test_3_actual>>;
