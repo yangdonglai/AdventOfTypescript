@@ -18,12 +18,17 @@ type NewGame = {
 	board: EmptyBoard;
 	state: "❌";
 };
-
+/**
+ * 将字符串转换为元组索引
+ */
 type YIndex = {
 	top: 0;
 	middle: 1;
 	bottom: 2;
 };
+/**
+ * 将字符串转换为元组索引
+ */
 type XIndex = {
 	left: 0;
 	center: 1;
@@ -36,28 +41,25 @@ type TicTacToe<
 > = S extends `${infer Y extends TicTacToeYPositions}-${infer X extends TicTacToeXPositions}`
 	? Game["board"][YIndex[Y]][XIndex[X]] extends "  "
 		? DrawEnd<
-				EndList<
+				IsGameEnd<
 					{
 						state: "❌" extends Game["state"] ? "⭕" : "❌";
 						// board: StepBoard<Game["board"], XIndex[X], YIndex[Y], Game["state"]>;
-						board: StepBoard<Game["board"], YIndex[Y], XIndex[X], Game["state"]>;
+						board: StepOnce<Game["board"], YIndex[Y], XIndex[X], Game["state"]>;
 						// board:  [XIndex[X], YIndex[Y]]
 					},
-					[
-						RowEndPoint<0>,
-						RowEndPoint<1>,
-						RowEndPoint<2>,
-						ColumnEndPoint<0>,
-						ColumnEndPoint<1>,
-						ColumnEndPoint<2>,
-						...SpecialEndPoint,
-					]
 					// [[[0, 0], [0, 1], [0, 2]], [[1, 0], [1, 1], [1, 2]], [[0, 1], [1, 1], [2, 1]]]
+					AllLinePosList
 				>
 			>
 		: Game
 	: never;
-type StepBoard<
+
+/**
+ * StepOnce 将棋盘进行一次步进，即将对应的 "  " 转换为 "⭕" 或 "❌"
+ * 这里无法像 js 那样直接 arr[x][y] = '⭕' 需要遍历整个元组,然后将对应索引元素替换成 "⭕" 
+ */
+type StepOnce<
 	Board extends any[][],
 	X extends number,
 	Y extends number,
@@ -65,17 +67,20 @@ type StepBoard<
 	RowIndex extends unknown[] = [],
 	Ret extends any[][] = [],
 > = Board extends [infer First extends any[], ...infer Rest extends any[][]]
-	? StepBoard<
+	? StepOnce<
 			Rest,
 			X,
 			Y,
 			State,
 			[unknown, ...RowIndex],
-			[...Ret, StepRow<First, X, Y, State, RowIndex>]
+			[...Ret, StepInRow<First, X, Y, State, RowIndex>]
 		>
 	: Ret;
 
-type StepRow<
+/**
+ * StepInRow 对某一行进行步进
+ */ 
+type StepInRow<
 	Row extends any[],
 	X extends number,
 	Y extends number,
@@ -85,7 +90,7 @@ type StepRow<
 	Ret extends any[] = [],
 > = X extends RowIndex["length"]
 	? Row extends [infer First, ...infer Rest]
-		? StepRow<
+		? StepInRow<
 				Rest,
 				X,
 				Y,
@@ -97,9 +102,12 @@ type StepRow<
 		: Ret
 	: Row;
 
-type a = StepRow<["0", "1", "2"], 0, 1, "JACK", []>;
+type a = StepInRow<["0", "1", "2"], 0, 1, "JACK", []>;
 
-type End<
+/**
+ * IsEndWithLinePos 判断3个位置的元素是否都为"❌" 或都为  "⭕"
+ */
+type IsEndWithLinePos<
 	Game extends { board: any[][]; state: string },
 	P0 extends [number, number],
 	P1 extends [number, number],
@@ -118,16 +126,42 @@ type End<
 		: Game
 	: Game;
 
-type EndList<Game extends { board: any[][]; state: string }, List> = List extends [
+/**
+ * 判断游戏是否结束
+ * 如果对应的3个位置(连线)的元素都是"⭕" 或 "❌"那么游戏结束
+ */
+type IsGameEnd<Game extends { board: any[][]; state: string }, List> = List extends [
 	infer P extends [[number, number], [number, number], [number, number]],
 	...infer Rest,
 ]
-	? EndList<End<Game, P[0], P[1], P[2]>, Rest>
+	? IsGameEnd<IsEndWithLinePos<Game, P[0], P[1], P[2]>, Rest>
 	: Game;
 
-type RowEndPoint<Row extends number> = [[Row, 0], [Row, 1], [Row, 2]];
-type ColumnEndPoint<Column extends number> = [[0, Column], [1, Column], [2, Column]];
-type SpecialEndPoint = [[[0, 0], [1, 1], [2, 2]], [[0, 2], [1, 1], [2, 0]]];
+/**
+ * Horizontal 水平的连线位置
+ */
+type HorizontalPos<Row extends number> = [[Row, 0], [Row, 1], [Row, 2]];
+/**
+ * VerticalPos 垂直的连线位置
+ */
+type VerticalPos<Column extends number> = [[0, Column], [1, Column], [2, Column]];
+/**
+ * SpecialLinePos 特殊的连线，两个对角线连线
+ */
+type SpecialLinePos = [[[0, 0], [1, 1], [2, 2]], [[0, 2], [1, 1], [2, 0]]];
+
+/**
+ * 所有的连线的索引元组
+ */
+type AllLinePosList =[
+	HorizontalPos<0>,
+	HorizontalPos<1>,
+	HorizontalPos<2>,
+	VerticalPos<0>,
+	VerticalPos<1>,
+	VerticalPos<2>,
+	...SpecialLinePos,
+]
 /**
  * DrawEnd 平局结果
  */
@@ -153,21 +187,25 @@ type IsBoardFull<Board extends any[][]> = Board extends [
 	infer First extends any[],
 	...infer Rest extends any[],
 ]
-	? NoRowSpace<First> extends false
+	? IsBoardRowFull<First> extends false
 		? false
 		: IsBoardFull<Rest>
 	: true;
-type NoRowSpace<Row extends any[], Ret = never> = Row extends [
+/**
+ * IsBoardRowFull 
+ * 检测当前行是不是没有空余的位置了
+ */
+type IsBoardRowFull<Row extends any[], Ret = never> = Row extends [
 	infer First,
 	...infer Rest extends any[],
 ]
 	? First extends "❌" | "⭕"
-		? NoRowSpace<Rest>
+		? IsBoardRowFull<Rest>
 		: false
 	: true;
 // type NoSpace<Board extends any[][]> = Board[number];
 // type NoRowSpace<Row extends any[]> = "❌" | "⭕" extends Row[number] ? true : false;
-type b = NoRowSpace<["❌"]>;
+type b = IsBoardRowFull<["❌"]>;
 type c = IsBoardFull<[["❌"], ["⭕"]]>;
 // type d = NoRowSpace<["❌", "⭕"] | ["❌", " "]>
 
